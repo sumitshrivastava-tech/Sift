@@ -1,0 +1,182 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String    @id @default(cuid())
+  username       String    @unique
+  fullName       String?
+  phone          String    @unique
+  phoneVerified  Boolean   @default(true)
+  trustScore     Float     @default(80.0)
+  isRestricted   Boolean   @default(false)
+  email          String?   @unique
+  password       String?
+  avatar         String?
+  bio            String?
+  followersCount Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  settings           Settings?
+  posts              Post[]
+  saves              Save[]
+  comments           Comment[]
+  likes              Like[]
+  boards             Board[]             @relation("BoardOwner")
+  collaboratorBoards BoardCollaborator[]
+
+  @@map("users")
+}
+
+model Settings {
+  id                String   @id @default(cuid())
+  pushNotifications Boolean  @default(true)
+  darkMode          Boolean  @default(false)
+  language          String   @default("en")
+  profileVisibility String   @default("public") // "public" | "private" | "followers"
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("settings")
+}
+
+model Post {
+  id              String   @id @default(cuid())
+  title           String
+  content         String
+  images          String   @default("[]")
+  tags            String   @default("[]")
+  sourceTags      String   @default("[]")
+  likesCount      Int      @default(0)
+
+  viewDuration    Float    @default(0) // total view duration in seconds
+  engagementScore Float    @default(0) // weighted engagement metric
+  isFlagged       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  authorId        String
+  author          User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  saves           Save[]
+  comments        Comment[]
+  likes           Like[]
+
+  @@index([authorId])
+  @@index([engagementScore])
+  @@map("posts")
+}
+
+// Temporary OTP store for phone verification
+model OtpStore {
+  id        String   @id @default(cuid())
+  phone     String   @unique          // one live OTP per phone at a time
+  code      String
+  attempts  Int      @default(0)      // brute-force guard
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@map("otp_store")
+}
+
+model Save {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  boardId   String?
+  board     Board?   @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId, boardId])
+  @@index([postId])
+  @@index([userId])
+  @@index([boardId])
+  @@map("saves")
+}
+
+model Board {
+  id            String              @id @default(cuid())
+  name          String
+  description   String?
+  isPrivate     Boolean             @default(true)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  ownerId       String
+  owner         User                @relation("BoardOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  collaborators BoardCollaborator[]
+  saves         Save[]
+
+  @@index([ownerId])
+  @@map("boards")
+}
+
+model BoardCollaborator {
+  id        String   @id @default(cuid())
+  role      String   @default("editor") // "editor" | "viewer" | "admin"
+  createdAt DateTime @default(now())
+
+  boardId   String
+  board     Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([boardId, userId])
+  @@index([boardId])
+  @@index([userId])
+  @@map("board_collaborators")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  isFlagged Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([authorId])
+  @@map("comments")
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([postId])
+  @@index([userId])
+  @@map("likes")
+}
+
