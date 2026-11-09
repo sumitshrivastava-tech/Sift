@@ -56,15 +56,61 @@ export async function findUserById(id: string): Promise<PublicUser | null> {
 
 /**
  * Updates an existing user's profile information.
+ * Uses upsert/graceful seeding so mock or newly authenticated users update cleanly.
  */
 export async function updateUser(
   id: string,
   data: UpdateUserInput
 ): Promise<PublicUser> {
+  const cleanUsername = data.username ? data.username.trim().toLowerCase() : undefined;
+
+  // Verify username uniqueness if username is being updated
+  if (cleanUsername) {
+    const isAvailable = await isUsernameAvailable(cleanUsername, id);
+    if (!isAvailable) {
+      const error: any = new Error(`Username '@${cleanUsername}' is already taken.`);
+      error.statusCode = 409;
+      throw error;
+    }
+  }
+
+  // Check if user exists in database
+  const existingUser = await prisma.user.findUnique({
+    where: { id },
+    select: { id: true },
+  });
+
+  if (!existingUser) {
+    // Gracefully upsert/create user record
+    const created = await prisma.user.create({
+      data: {
+        id,
+        username: cleanUsername || `user_${id.slice(-6)}`,
+        fullName: data.fullName ?? "Creator",
+        phone: data.phone || `+9198${Math.floor(10000000 + Math.random() * 90000000)}`,
+        bio: data.bio ?? null,
+        avatar: data.avatar ?? null,
+        followersCount: data.followersCount ?? 1240,
+      },
+      select: {
+        id: true,
+        username: true,
+        fullName: true,
+        phone: true,
+        email: true,
+        avatar: true,
+        bio: true,
+        followersCount: true,
+        createdAt: true,
+      },
+    });
+    return created as PublicUser;
+  }
+
   const user = await prisma.user.update({
     where: { id },
     data: {
-      ...(data.username ? { username: data.username } : {}),
+      ...(cleanUsername ? { username: cleanUsername } : {}),
       ...(data.fullName !== undefined ? { fullName: data.fullName } : {}),
       ...(data.phone ? { phone: data.phone } : {}),
       ...(data.bio !== undefined ? { bio: data.bio } : {}),

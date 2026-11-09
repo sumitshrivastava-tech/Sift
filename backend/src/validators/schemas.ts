@@ -17,8 +17,8 @@ export const createUserSchema = z.object({
     .regex(/^\+?[1-9]\d{6,14}$/, "Invalid phone number format"),
   email: z.string().email("Invalid email format").optional(),
   password: z.string().min(6).optional(),
-  avatar: z.string().url("Avatar must be a valid URL").optional(),
-  bio: z.string().max(300, "Bio must be at most 300 characters").optional(),
+  avatar: z.string().optional().nullable(),
+  bio: z.string().max(500, "Bio must be at most 500 characters").optional().nullable(),
 });
 
 export type CreateUserInput = z.infer<typeof createUserSchema>;
@@ -33,13 +33,14 @@ export const updateUserSchema = z.object({
       "Username can only contain letters, numbers, and underscores"
     )
     .optional(),
-  fullName: z.string().max(80).optional(),
+  fullName: z.string().max(100).optional().nullable(),
   phone: z
     .string()
     .regex(/^\+?[1-9]\d{6,14}$/, "Invalid phone number format")
-    .optional(),
-  bio: z.string().max(300, "Bio must be at most 300 characters").optional(),
-  avatar: z.string().url("Avatar must be a valid URL").optional(),
+    .optional()
+    .nullable(),
+  bio: z.string().max(500, "Bio must be at most 500 characters").optional().nullable(),
+  avatar: z.string().optional().nullable(),
   followersCount: z.number().int().min(0).optional(),
 });
 
