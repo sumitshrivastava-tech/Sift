@@ -55,6 +55,23 @@ export async function getFeed(
 }
 
 /**
+ * GET /api/posts/following
+ * Returns real posts from creators the user follows.
+ */
+export async function getFollowingFeed(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const feed = await postService.getFollowingFeed(req.query as unknown as FeedQueryInput);
+    res.json({ success: true, ...feed });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
  * GET /api/posts/:id
  * Returns a single post by ID with full engagement breakdown.
  */

@@ -282,11 +282,16 @@ export async function createPost(
  * Posts with high active engagement are dynamically boosted to the top of the feed.
  */
 export async function getPostFeed(query: FeedQueryInput): Promise<PaginatedFeed> {
-  const { page, limit, tag, q, authorId, sort = "engagement" } = query;
+  const { page, limit, tag, q, authorId, authorIds, sort = "engagement" } = query;
   const skip = (page - 1) * limit;
 
   const where: Record<string, unknown> = {};
-  if (authorId) {
+  if (authorIds) {
+    const ids = authorIds.split(',').map((s) => s.trim()).filter(Boolean);
+    if (ids.length > 0) {
+      where.authorId = { in: ids };
+    }
+  } else if (authorId) {
     where.authorId = authorId;
   }
   if (tag) {
@@ -366,6 +371,53 @@ export async function getPostFeed(query: FeedQueryInput): Promise<PaginatedFeed>
       hasNextPage: page < totalPages,
       hasPrevPage: page > 1,
       sort,
+    },
+  };
+}
+
+/**
+ * Returns a feed of posts from creators the user follows.
+ */
+export async function getFollowingFeed(query: FeedQueryInput): Promise<PaginatedFeed> {
+  const { page, limit, authorIds } = query;
+  const skip = (page - 1) * limit;
+
+  const where: Record<string, unknown> = {};
+  if (authorIds) {
+    const ids = authorIds
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (ids.length > 0) {
+      where.authorId = { in: ids };
+    }
+  }
+
+  const rawPosts = await prisma.post.findMany({
+    where,
+    include: {
+      author: { select: { id: true, username: true, avatar: true } },
+      _count: { select: { saves: true, comments: true, likes: true } },
+    },
+    orderBy: { createdAt: "desc" },
+    skip,
+    take: limit,
+  });
+
+  const total = await prisma.post.count({ where });
+  const parsedPosts = rawPosts.map((r) => deserializePost(r as unknown as RawPostRow));
+  const totalPages = Math.ceil(total / limit) || 1;
+
+  return {
+    data: parsedPosts,
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+      sort: "recent",
     },
   };
 }

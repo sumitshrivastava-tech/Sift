@@ -2,12 +2,13 @@ import { Router } from "express";
 import {
   createPost,
   getFeed,
+  getFollowingFeed,
   getPost,
   getRelatedPosts,
   recordView,
   toggleLike,
 } from "../controllers/post.controller";
-import { createComment, getComments } from "../controllers/comment.controller";
+import { createComment, getComments, toggleCommentLike } from "../controllers/comment.controller";
 import { validate } from "../middleware/validate";
 import { authenticateToken } from "../middleware/auth";
 import { restrictUntrustedUser } from "../middleware/contentModeration";
@@ -27,6 +28,15 @@ const router = Router();
  * @access Public
  */
 router.get("/feed", validate(feedQuerySchema, "query"), getFeed);
+router.get("/feed/following", validate(feedQuerySchema, "query"), getFollowingFeed);
+
+/**
+ * @route  GET /api/posts/following
+ * @desc   Get real feed of posts from creators the user follows
+ * @query  page, limit, authorIds
+ * @access Public / Authenticated
+ */
+router.get("/following", validate(feedQuerySchema, "query"), getFollowingFeed);
 
 /**
  * @route  POST /api/posts
@@ -82,5 +92,6 @@ router.get("/:postId/comments", getComments);
  * @access Public / Authenticated
  */
 router.post("/:postId/comments", authenticateToken, createComment);
+router.post("/:postId/comments/:id/like", toggleCommentLike);
 
 export default router;
