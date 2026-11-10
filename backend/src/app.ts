@@ -11,6 +11,7 @@ import authRoutes from "./routes/auth.routes";
 import settingsRoutes from "./routes/settings.routes";
 import searchRoutes from "./routes/search.routes";
 import boardRoutes from "./routes/board.routes";
+import notificationRoutes from "./routes/notification.routes";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 
 export function createApp(): Application {
@@ -51,6 +52,7 @@ export function createApp(): Application {
   app.use("/api/settings", settingsRoutes);
   app.use("/api/search", searchRoutes);
   app.use("/api/boards", boardRoutes);
+  app.use("/api/notifications", notificationRoutes);
 
   // ─── Error Handling (must come last) ────────────────────────────────────────
   app.use(notFoundHandler);

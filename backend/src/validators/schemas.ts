@@ -50,14 +50,20 @@ export type UpdateUserInput = z.infer<typeof updateUserSchema>;
 
 export const createPostSchema = z.object({
   authorId: z.string().optional(),
+  userId: z.string().optional(),
   title: z
     .string()
     .max(200, "Title must be at most 200 characters")
     .optional(),
   content: z
     .string()
-    .min(1, "Content is required")
-    .max(10000, "Content must be at most 10,000 characters"),
+    .max(10000, "Content must be at most 10,000 characters")
+    .optional(),
+  description: z
+    .string()
+    .max(10000, "Description must be at most 10,000 characters")
+    .optional(),
+  imageUrl: z.string().optional(),
   images: z
     .union([z.array(z.string()), z.string()])
     .transform((val) => (Array.isArray(val) ? val : val ? [val] : []))

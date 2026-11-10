@@ -14,7 +14,7 @@ export async function createPost(
   next: NextFunction
 ): Promise<void> {
   try {
-    const authorId = req.user?.userId || req.body.authorId;
+    const authorId = req.user?.userId || req.body.userId || req.body.authorId;
     const postData = {
       ...req.body,
       authorId,

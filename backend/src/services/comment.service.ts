@@ -1,5 +1,6 @@
 import { prisma } from "../lib/prisma";
 import { moderateText } from "../utils/contentModeration";
+import { createNotification } from "./notification.service";
 
 export interface CommentWithAuthor {
   id: string;
@@ -127,6 +128,18 @@ export async function createComment(
     });
   } catch {
     // Ignore score update failure
+  }
+
+  // 5. Notify post author
+  if (post.authorId && post.authorId !== user.id) {
+    createNotification({
+      type: "NEW_COMMENT",
+      actorId: user.id,
+      recipientId: post.authorId,
+      postId: post.id,
+      commentId: comment.id,
+      content: moderation.cleanText,
+    }).catch(() => {});
   }
 
   return comment;

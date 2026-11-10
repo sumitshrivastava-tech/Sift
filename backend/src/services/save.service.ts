@@ -1,4 +1,5 @@
 import { prisma } from "../lib/prisma";
+import { createNotification } from "./notification.service";
 
 export interface SaveResult {
   id: string;
@@ -81,6 +82,22 @@ export async function savePost(
 
   // Re-sync weighted score
   await syncPostEngagementScore(postId);
+
+  // Notify post author
+  prisma.post
+    .findUnique({ where: { id: postId }, select: { authorId: true } })
+    .then((p) => {
+      if (p && p.authorId !== userId) {
+        createNotification({
+          type: "POST_SAVED",
+          actorId: userId,
+          recipientId: p.authorId,
+          postId,
+          boardName: boardId ? "Canvas Board" : "Collection",
+        }).catch(() => {});
+      }
+    })
+    .catch(() => {});
 
   return save;
 }

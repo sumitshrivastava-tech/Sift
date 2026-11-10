@@ -102,7 +102,8 @@ export async function followUser(
   try {
     const { id } = req.params;
     const { action } = req.body;
-    const result = await userService.toggleFollowUser(id, action);
+    const followerId = (req as any).user?.userId || (req.body as any).followerId;
+    const result = await userService.toggleFollowUser(id, action, followerId);
     res.json({
       success: true,
       message: result.isFollowing ? "User followed" : "User unfollowed",

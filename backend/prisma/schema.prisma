@@ -34,6 +34,8 @@ model User {
   likes              Like[]
   boards             Board[]             @relation("BoardOwner")
   collaboratorBoards BoardCollaborator[]
+  notificationsSent     Notification[]      @relation("NotificationActor")
+  notificationsReceived Notification[]      @relation("NotificationRecipient")
 
   @@map("users")
 }
@@ -75,6 +77,7 @@ model Post {
   saves           Save[]
   comments        Comment[]
   likes           Like[]
+  notifications   Notification[]
 
   @@index([authorId])
   @@index([engagementScore])
@@ -162,6 +165,7 @@ model Comment {
 
   authorId  String
   author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  notifications Notification[]
 
   @@index([postId])
   @@index([authorId])
@@ -183,3 +187,30 @@ model Like {
   @@index([userId])
   @@map("likes")
 }
+
+model Notification {
+  id          String   @id @default(cuid())
+  type        String   // "NEW_FOLLOWER" | "POST_SAVED" | "NEW_COMMENT" / "FOLLOWERS" | "SAVES" | "COMMENTS"
+  actorId     String
+  actor       User     @relation("NotificationActor", fields: [actorId], references: [id], onDelete: Cascade)
+  recipientId String
+  recipient   User     @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  postId      String?
+  post        Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  commentId   String?
+  comment     Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  boardName   String?
+  content     String?
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([recipientId])
+  @@index([actorId])
+  @@index([postId])
+  @@index([type])
+  @@map("notifications")
+}
+

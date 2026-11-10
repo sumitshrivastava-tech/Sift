@@ -1,6 +1,7 @@
 import { prisma } from "../lib/prisma";
 import { CreateUserInput, UpdateUserInput } from "../validators/schemas";
 import { User } from "@prisma/client";
+import { createNotification } from "./notification.service";
 
 export type PublicUser = Omit<User, "updatedAt">;
 
@@ -157,7 +158,8 @@ export async function isUsernameAvailable(
  */
 export async function toggleFollowUser(
   targetUserId: string,
-  action?: 'follow' | 'unfollow'
+  action?: 'follow' | 'unfollow',
+  followerId?: string
 ): Promise<{ isFollowing: boolean; followersCount: number }> {
   const user = await prisma.user.findUnique({
     where: { id: targetUserId },
@@ -183,6 +185,14 @@ export async function toggleFollowUser(
     data: { followersCount: newCount },
     select: { followersCount: true },
   });
+
+  if (shouldFollow && followerId && followerId !== targetUserId) {
+    createNotification({
+      type: 'NEW_FOLLOWER',
+      actorId: followerId,
+      recipientId: targetUserId,
+    }).catch(() => {});
+  }
 
   return {
     isFollowing: shouldFollow,
